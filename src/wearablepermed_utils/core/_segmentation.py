@@ -225,18 +225,11 @@ def save_segmented_data_to_compressed_npz(csv_file, file_name, segmented_activit
     --------
     None
     """
-    folder_path = "segmented_data"  # Folder where the compressed .npz file will be saved
-
     csv_folder_file = os.path.dirname(csv_file)
 
-    # Create the folder if it does not exist
-    full_path = os.path.join(csv_folder_file, folder_path)
-    if not os.path.exists(full_path):
-        os.makedirs(full_path)
-
     # Save the dictionary of data into a .npz file
-    np.savez(os.path.join(full_path, file_name), **segmented_activity_data_wpm)
-    print(f"WPM data saved in the folder: {full_path}")
+    np.savez(os.path.join(csv_folder_file, file_name), **segmented_activity_data_wpm)
+    print(f"WPM data saved in the folder: {csv_folder_file}")
 
 def load_dicts_from_npz(file_path):
     """
