@@ -50,14 +50,12 @@ Save project requirements:
 $ pip freeze > requirements.txt
 ```
 
-Build project commands
+Build project commands:
 ```
 $ tox -e clean
 $ tox -e build
 $ tox -e docs
 $ tox -e publish -- --repository pypi
-
-xxx
 ```
 
 <!-- pyscaffold-notes -->
