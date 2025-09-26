@@ -56,8 +56,6 @@ $ tox -e clean
 $ tox -e build
 $ tox -e docs
 $ tox -e publish -- --repository pypi
-
-xxx
 ```
 
 <!-- pyscaffold-notes -->
