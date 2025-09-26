@@ -463,7 +463,7 @@ def concatenate_stacks(stacks_and_labels):
         concatenated_labels = []
     return concatenated_stack, concatenated_labels
 
-def load_concat_window_stack(npz_file_paths, crop_columns, window_size_samples, step_size_samples=None, save_file_name=None):
+def load_concat_window_stack(args, npz_file_paths, crop_columns, window_size_samples, window_overlapping_percent=None, save_file_name=None):
     """
     Loads multiple .npz files, concatenates arrays by key, applies windowing, creates a stacked array and labels,
     and optionally saves the result to a file.
@@ -485,11 +485,18 @@ def load_concat_window_stack(npz_file_paths, crop_columns, window_size_samples, 
         stacked_data (np.ndarray), labels (np.ndarray)
     """
     # Load dictionaries from each npz file
-    dicts = [load_dicts_from_npz(path) for path in npz_file_paths]
+    segmented_activity_data = [load_dicts_from_npz(path) for path in npz_file_paths]
+
+    # remove the not estructure data
+    if (args.include_not_estructure_data == False):
+        segmented_activity_data[0].pop('ACTIVIDAD NO ESTRUCTURADA')
+
     # Concatenate arrays by key and crop columns
-    concatenated_dict = concatenate_arrays_by_key(dicts, crop_columns)
+    concatenated_dict = concatenate_arrays_by_key(segmented_activity_data, crop_columns)
+
     # Apply windowing
-    windowed_dict = apply_windowing_WPM_segmented_data(concatenated_dict, window_size_samples, step_size_samples)
+    windowed_dict = apply_windowing_WPM_segmented_data(concatenated_dict, window_size_samples, window_overlapping_percent)
+
     # Create stack and labels
     stacked_data, labels_data = create_stack_from_windowed_dict(windowed_dict)
     

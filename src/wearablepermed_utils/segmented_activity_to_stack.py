@@ -17,6 +17,8 @@ _logger = logging.getLogger(__name__)
 
 # ---- Python API ----
 
+_DEF_WINDOW_OVERLAPPING_PERCENT = None
+
 def parse_args(args):
     """Parse command line parameters
 
@@ -79,13 +81,20 @@ def parse_args(args):
     )
     
     parser.add_argument(
-        '-step-size', 
-        '--step-size',        
-        dest="step_size",
-                help='Step size for windowing (default: same as window size for no overlap)',
-        type=int
-    )
+        "-window-overlapping-percent",
+        "--window-overlapping-percent",
+        type=int,
+        default=_DEF_WINDOW_OVERLAPPING_PERCENT,
+        dest="window_overlapping_percent", 
+        help="Window Overlapping percent.")  
     
+    parser.add_argument(
+        "-include-not-estructure-data",
+        "--include-not-estructure-data",
+        dest="include_not_estructure_data",
+        action='store_true',
+        help="Include estructure data.")     
+        
     parser.add_argument(
         '-output', 
         '--output',  
@@ -157,10 +166,11 @@ def main(args):
     try:
         # Execute the main function
         stacked_data, labels = load_concat_window_stack(
+            args,
             npz_file_paths=args.npz_files,
             crop_columns=args.crop_columns,
             window_size_samples=args.window_size,
-            step_size_samples=args.step_size,
+            window_overlapping_percent=args.window_overlapping_percent,
             save_file_name=args.output
         )
         
@@ -169,7 +179,7 @@ def main(args):
         _logger.debug("✓ Number of labels: {len(labels)}")
         _logger.debug("✓ Unique activities: {len(np.unique(labels))}")
 
-        if args.verbose:            
+        if args.loglevel == logging.DEBUG:            
             # Show label distribution
             unique_labels, counts = np.unique(labels, return_counts=True)
 
@@ -184,7 +194,7 @@ def main(args):
     except Exception as e:
         _logger.error("✗ Error during processing: {e}", file=sys.stderr)
 
-        if args.verbose:
+        if args.loglevel == logging.DEBUG: 
             import traceback
             traceback.print_exc()
 
