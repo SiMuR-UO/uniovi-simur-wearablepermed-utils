@@ -50,7 +50,7 @@ Save project requirements:
 $ pip freeze > requirements.txt
 ```
 
-Build project commands10
+Build project commands
 ```
 $ tox -e clean
 $ tox -e build
