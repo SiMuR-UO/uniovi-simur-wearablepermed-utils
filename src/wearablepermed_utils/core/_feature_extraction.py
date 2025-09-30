@@ -2,7 +2,12 @@ import numpy as np
 import scipy as sp
 from . import _preprocessing as prep
 from scipy.signal import find_peaks
-from numpy import arctan2, sqrt
+from numpy import arctan2, atan2, sqrt
+
+WINDOW_CONCATENATED_DATA = "arr_0"
+WINDOW_ALL_LABELS = "arr_1"
+WINDOW_ALL_METADATA = "arr_2"
+
 
 def get_basic_stats(epochdata, filter_b = [], filter_a = []):
     """
@@ -102,7 +107,7 @@ def get_FFT_magnitude(FFT, normalize=True):
         FFTmag /= len(FFT)
     return FFTmag
 
-def extract_features(data, n_imus = 1):
+def extract_features(data):
     # ***************
     # 1.- Cuantiles *
     # ***************
@@ -125,13 +130,11 @@ def extract_features(data, n_imus = 1):
     num_filas = (data).shape[0]  # m ejemplos
     num_columnas = (data).shape[1]  # 12
     
-    matriz_resultados_armonicos = np.zeros((num_filas,30*n_imus))    # n_imus IMU
-    #matriz_resultados_armonicos = np.zeros((num_filas,30))    # 1 IMU
+    matriz_resultados_armonicos = np.zeros((num_filas,30))    # 1 IMU
     # matriz_resultados_armonicos = np.zeros((num_filas,60))    # 2 IMUs
     # Recorremos cada serie temporal y calculamos las características
     for i in range(num_filas):
-        armonicos_totales = np.zeros((6*n_imus,5))      # n_imus IMUs 
-        #armonicos_totales = np.zeros((6,5))      # 1 IMU  
+        armonicos_totales = np.zeros((6,5))      # 1 IMU  
         # armonicos_totales = np.zeros((12,5))   # 2 IMUs
         for j in range(num_columnas):
             # Extraemos la serie temporal de longitud 250
@@ -146,13 +149,12 @@ def extract_features(data, n_imus = 1):
     # *****************************************
     # 3.- Número de picos y prominencia media *
     # *****************************************
-    matriz_resultados_numero_picos = np.zeros((num_filas,12*n_imus))   # n_imus IMUs
-    #matriz_resultados_numero_picos = np.zeros((num_filas,12))   # 1 IMUs
+    matriz_resultados_numero_picos = np.zeros((num_filas,12))   # 1 IMUs
     # matriz_resultados_numero_picos = np.zeros((num_filas,24))   # 2 IMUs
     # # Recorremos cada serie temporal y calculamos los picos
     for i in range(num_filas):  
-        picos_totales = np.zeros(6*n_imus)         # n_imus IMUs
-        prominencias_totales = np.zeros(6*n_imus)  # n_imus IMUs
+        picos_totales = np.zeros(6)         # 1 IMU
+        prominencias_totales = np.zeros(6)  # 1 IMUs
         # picos_totales = np.zeros(12)      # 2 IMUs
         # prominencias_totales = np.zeros(12) # 2 IMUs
         for j in range(num_columnas):
@@ -183,14 +185,8 @@ def extract_features(data, n_imus = 1):
     # *******************
     # 4.- Correlaciones *
     # *******************
-    num_canales = n_imus * 6
-    num_col = num_canales * (num_canales - 1) // 2
-    
-    if n_imus == 1:
-        matriz_correlaciones = np.zeros((num_filas,num_col))
-    else:
-        matriz_correlaciones = np.zeros((num_filas,num_col))  
-        
+    matriz_correlaciones = np.zeros((num_filas,15))  # 1 IMU
+    # matriz_correlaciones = np.zeros((num_filas,66))  # 2 IMUs
     for i in range(num_filas):
         # Calcular la matriz de correlación entre las filas
         correlacion = np.corrcoef(data[i,:,:], rowvar=True)
@@ -230,7 +226,9 @@ def extract_features(data, n_imus = 1):
         
         matriz_resultados_autocorrelacion[i,0] = autocorrelacion_acc_IMU1[0,1]
         # matriz_resultados_autocorrelacion[i,1] = autocorrelacion_acc_IMU2[0,1]
-        
+    
+    # self.X_train = np.hstack((Matriz_de_cuantiles_train, matriz_resultados_armonicos, matriz_resultados_numero_picos, matriz_correlaciones, matriz_resultados_autocorrelacion))      
+    
     # **************************************************
     # 6.- Componentes roll, pitch y yaw del movimiento *
     # **************************************************
@@ -259,8 +257,8 @@ def extract_features(data, n_imus = 1):
             gyr_y = serie_gyr_y[j]
             gyr_z = serie_gyr_z[j]
 
-            roll = arctan2(acc_y, acc_z)                             # Roll: rotación alrededor del eje X
-            pitch = arctan2(-acc_x, sqrt(acc_y**2 + acc_z**2))  # Pitch: rotación alrededor del eje Y
+            roll = atan2(acc_y, acc_z)                             # Roll: rotación alrededor del eje X
+            pitch = atan2(-acc_x, sqrt(acc_y**2 + acc_z**2))  # Pitch: rotación alrededor del eje Y
             yaw = gyr_z * dt                                            # Integración simple para obtener el cambio de yaw
             yaw_acumulado += yaw                                        # Efecto acumulativo de la acción integral
             rolls.append(roll)
@@ -349,7 +347,7 @@ def extract_features_from_csv(csv_file, registro_actividades, body_segment='Thig
         'all_activities': available_activities
     }
 
-def extract_features_from_stack(stack_file, n_imus=2):
+def extract_features_from_stack(stack_file):
     """
     Pipeline para extraer features desde un archivo NPZ que contiene un stack de datos enventanados.
     
@@ -389,8 +387,9 @@ def extract_features_from_stack(stack_file, n_imus=2):
     # 1. Cargar el stack y las etiquetas
     try:
         with np.load(stack_file, allow_pickle=True) as data:
-            concatenated_data = data['concatenated_data']  # (num_ventanas, canales, window_size)
-            labels = data['labels']
+            concatenated_data = data[WINDOW_CONCATENATED_DATA]  # (num_ventanas, canales, window_size)
+            labels = data[WINDOW_ALL_LABELS]
+            metadata = data[WINDOW_ALL_METADATA]
     except FileNotFoundError:
         raise FileNotFoundError(f"No se pudo encontrar el archivo: {stack_file}")
     except KeyError as e:
@@ -407,16 +406,18 @@ def extract_features_from_stack(stack_file, n_imus=2):
                         f"con el número de etiquetas ({len(labels)})")
     
     # 2. Extraer features para cada ventana del stack
-    features = extract_features(concatenated_data, n_imus=n_imus)
+    features = extract_features(concatenated_data)
     
     # 3. Obtener información adicional
-    unique_labels = np.unique(labels)
+    # unique_labels = np.unique(labels)
     
-    return {
-        'features': features,
-        'labels': labels,
-        'windowed_data': concatenated_data,
-        'data_shape': concatenated_data.shape,
-        'num_windows': len(concatenated_data),
-        'unique_labels': unique_labels
-    }
+    # return {
+    #     'features': features,
+    #     'labels': labels,
+    #     'windowed_data': concatenated_data,
+    #     'data_shape': concatenated_data.shape,
+    #     'num_windows': len(concatenated_data),
+    #     'unique_labels': unique_labels
+    # }
+
+    return features, labels, metadata
