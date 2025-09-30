@@ -68,14 +68,14 @@ def parse_args(args):
         help='Path to the NPZ file containing stacked windowed data'
     )
     
-    parser.add_argument(
-        '-n-imus',
-        '--n-imus',
-        dest='n_imus',
-        type=int,
-        default=1,
-        help='Number of IMUs in the stack data (default: 1)'
-    )
+    # parser.add_argument(
+    #     '-n-imus',
+    #     '--n-imus',
+    #     dest='n_imus',
+    #     type=int,
+    #     default=1,
+    #     help='Number of IMUs in the stack data (default: 1)'
+    # )
     
     parser.add_argument(
         '-output', 
@@ -122,33 +122,31 @@ def main(args):
             
     try:
         # Extract features from stack
-        result = extract_features_from_stack(args.stack_file, n_imus=args.n_imus)
+        # result = extract_features_from_stack(args.stack_file, n_imus=args.n_imus)
+        features, labels, metadata = extract_features_from_stack(args.stack_file)
         
-        if args.loglevel in [logging.INFO, logging.DEBUG]:
-            print("✓ Feature extraction completed successfully!")
-            print(f"✓ Features shape: {result['features'].shape}")
-            print(f"✓ Number of windows: {result['num_windows']}")
-            print(f"✓ Data shape: {result['data_shape']}")
-            print(f"✓ Unique labels: {len(result['unique_labels'])}")
-            print(f"✓ Labels: {list(result['unique_labels'])}")
-            print()
+        # if args.loglevel in [logging.INFO, logging.DEBUG]:
+        #     print("✓ Feature extraction completed successfully!")
+        #     print(f"✓ Features shape: {result['features'].shape}")
+        #     print(f"✓ Number of windows: {result['num_windows']}")
+        #     print(f"✓ Data shape: {result['data_shape']}")
+        #     print(f"✓ Unique labels: {len(result['unique_labels'])}")
+        #     print(f"✓ Labels: {list(result['unique_labels'])}")
+        #     print()
             
-            # Show label distribution
-            unique_labels, counts = np.unique(result['labels'], return_counts=True)
-            print("Label distribution:")
-            for label, count in zip(unique_labels, counts):
-                print(f"  {label}: {count} windows")
-            print()
+        #     # Show label distribution
+        #     unique_labels, counts = np.unique(result['labels'], return_counts=True)
+        #     print("Label distribution:")
+        #     for label, count in zip(unique_labels, counts):
+        #         print(f"  {label}: {count} windows")
+        #     print()
         
         # Save results to NPZ file
         np.savez(
             args.output,
-            features=result['features'],
-            labels=result['labels'],
-            windowed_data=result['windowed_data'],
-            data_shape=result['data_shape'],
-            num_windows=result['num_windows'],
-            unique_labels=result['unique_labels']
+            features,
+            labels,
+            metadata
         )
         
         if args.loglevel in [logging.INFO, logging.DEBUG]:
