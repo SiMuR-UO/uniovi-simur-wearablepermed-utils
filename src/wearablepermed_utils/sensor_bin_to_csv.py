@@ -17,16 +17,16 @@ _logger = logging.getLogger(__name__)
 # ---- Python API ----
 
 def parse_args(args):
-    """Parse command line parameters
-
-    Args:
-      args (List[str]): command line parameters as list of strings
-          (for example  ``["--help"]``).
-
-    Returns:
-      :obj:`argparse.Namespace`: command line parameters namespace
-    """
-    parser = argparse.ArgumentParser(description="Bin to CSV Sensor Converter")
+    parser = argparse.ArgumentParser(
+        description="Convert a binary BIN to CSV Sensor file",
+        epilog="""
+        Examples:
+        # Basic usage:
+        sensor_bin_to_csv \ 
+            --bin-file /mnt/nvme1n2/git/uniovi-simur-wearablepermed-data/input/PMP1053/PMP1053_W1_PI.BIN \
+            --csv-file /mnt/nvme1n2/git/uniovi-simur-wearablepermed-data/input/PMP1053/PMP1053_W1_PI.csv
+        """
+    )
 
     parser.add_argument(
         "--version",

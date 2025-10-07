@@ -4,11 +4,6 @@ from . import _preprocessing as prep
 from scipy.signal import find_peaks
 from numpy import arctan2, atan2, sqrt
 
-WINDOW_CONCATENATED_DATA = "arr_0"
-WINDOW_ALL_LABELS = "arr_1"
-WINDOW_ALL_METADATA = "arr_2"
-
-
 def get_basic_stats(epochdata, filter_b = [], filter_a = []):
     """
     Calculate basic statistics for the given epoch data.
@@ -387,9 +382,9 @@ def extract_features_from_stack(stack_file):
     # 1. Cargar el stack y las etiquetas
     try:
         with np.load(stack_file, allow_pickle=True) as data:
-            concatenated_data = data[WINDOW_CONCATENATED_DATA]  # (num_ventanas, canales, window_size)
-            labels = data[WINDOW_ALL_LABELS]
-            metadata = data[WINDOW_ALL_METADATA]
+            concatenated_data = data["WINDOW_CONCATENATED_DATA"]  # (num_ventanas, canales, window_size)
+            labels = data["WINDOW_ALL_LABELS"]
+            metadata = data["WINDOW_ALL_METADATA"]
     except FileNotFoundError:
         raise FileNotFoundError(f"No se pudo encontrar el archivo: {stack_file}")
     except KeyError as e:

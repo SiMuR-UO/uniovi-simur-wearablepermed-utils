@@ -24,20 +24,15 @@ def parse_time(time_str):
     
 def parse_args(args):
     parser = argparse.ArgumentParser(
-        description="Process segmented WPM data: load, concatenate, window, and stack from NPZ files",
+        description="Segmentation of a csv imu data",
         epilog="""
         Examples:
-        # Basic usage with two files
-        python segmented_activity_to_stack.py file1.npz file2.npz --crop-columns 1:7 --window-size 250
-
-        # With step size and output file
-        python segmented_activity_to_stack.py file1.npz file2.npz --crop-columns 1:7 --window-size 250 --step-size 125 --output result.npz
-
-        # Using specific columns
-        python segmented_activity_to_stack.py file1.npz file2.npz --crop-columns 1,2,3,4,5,6 --window-size 250
-
-        # Process WPM data from examples
-        python segmented_activity_to_stack.py ../examples/data/Segmented_WPM_Data/datos_segmentados_PMP1020_W1_PI.npz ../examples/data/Segmented_WPM_Data/datos_segmentados_PMP1020_W1_M.npz --crop-columns 1:7 --window-size 250 --output combined_data.npz -v
+        # Basic usage:
+        csv_to_segmented_activity \ 
+            --csv-file /mnt/nvme1n2/git/uniovi-simur-wearablepermed-data/input/PMP1053/PMP1053_W1_M.csv \
+            --excel-activity-log /mnt/nvme1n2/git/uniovi-simur-wearablepermed-data/input/PMP1053/PMP1053_RegistroActividades.xlsx \
+            --body-segment PI /mnt/nvme1n2/git/uniovi-simur-wearablepermed-data/input/PMP1053/PMP1053_RegistroActividades.xlsx \
+            --output /mnt/nvme1n2/git/uniovi-simur-wearablepermed-data/input/PMP1053/PMP1053_W1_SEG_M.npz
         """        
     )   
 

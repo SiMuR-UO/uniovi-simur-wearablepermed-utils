@@ -424,28 +424,35 @@ def concatenate_arrays_by_key(dicts, crop_columns):
     """
     concatenated_dict = {}
     # Encuentra las claves comunes en todos los diccionarios
-    common_keys = set.intersection(*(set(d.keys()) for d in dicts))
+    #common_keys = set.intersection(*(set(d.keys()) for d in dicts))
+    common_keys = set(dicts.keys())
     for key in common_keys:
-        arrays = [d[key][:, crop_columns] for d in dicts]
-        min_len = min(arr.shape[0] for arr in arrays)
-        arrays_cropped = [arr[:min_len] for arr in arrays]
-        concatenated_dict[key] = np.concatenate(arrays_cropped, axis=1)
+        crop_array = dicts[key][:, crop_columns]
+        #min_len = min(arr.shape[0] for arr in arrays)
+        #arrays_cropped = [arr[:min_len] for arr in arrays]
+        #concatenated_dict[key] = np.concatenate(arrays, axis=1)
+        concatenated_dict[key] = crop_array
     return concatenated_dict
 
-def create_stack_from_windowed_dict(windowed_data_dict):
+def create_stack_from_windowed_dict(participant_id, windowed_data_dict):
     stacked_data = []
     all_labels = []
+    all_metadata = []
+
     for activity, data in windowed_data_dict.items():
         # Selecciona las columnas deseadas (por ejemplo, 1:7)
         selected_data = data
         stacked_data.append(selected_data)
         all_labels.extend([activity] * selected_data.shape[0])
+        all_metadata.extend([participant_id] * selected_data.shape[0])
+
     # Apila verticalmente todas las ventanas
     if stacked_data:
         stacked_data = np.vstack(stacked_data)
     else:
         stacked_data = np.array([])
-    return stacked_data, all_labels
+
+    return stacked_data, all_labels, all_metadata
 
 def concatenate_stacks(stacks_and_labels):
     """
@@ -463,7 +470,7 @@ def concatenate_stacks(stacks_and_labels):
         concatenated_labels = []
     return concatenated_stack, concatenated_labels
 
-def load_concat_window_stack(args, npz_file_paths, crop_columns, window_size_samples, window_overlapping_percent=None, save_file_name=None):
+def load_concat_window_stack(args, participant_id, npz_file_path, crop_columns, window_size_samples, window_overlapping_percent=None, save_file_name=None):
     """
     Loads multiple .npz files, concatenates arrays by key, applies windowing, creates a stacked array and labels,
     and optionally saves the result to a file.
@@ -485,11 +492,11 @@ def load_concat_window_stack(args, npz_file_paths, crop_columns, window_size_sam
         stacked_data (np.ndarray), labels (np.ndarray)
     """
     # Load dictionaries from each npz file
-    segmented_activity_data = [load_dicts_from_npz(path) for path in npz_file_paths]
+    segmented_activity_data = load_dicts_from_npz(npz_file_path)
 
     # remove the not estructure data
     if (args.include_not_estructure_data == False):
-        segmented_activity_data[0].pop('ACTIVIDAD NO ESTRUCTURADA')
+        segmented_activity_data.pop('ACTIVIDAD NO ESTRUCTURADA')
 
     # Concatenate arrays by key and crop columns
     concatenated_dict = concatenate_arrays_by_key(segmented_activity_data, crop_columns)
@@ -498,12 +505,15 @@ def load_concat_window_stack(args, npz_file_paths, crop_columns, window_size_sam
     windowed_dict = apply_windowing_WPM_segmented_data(concatenated_dict, window_size_samples, window_overlapping_percent)
 
     # Create stack and labels
-    stacked_data, labels_data = create_stack_from_windowed_dict(windowed_dict)
+    stacked_data, labels_data, participant_metadata = create_stack_from_windowed_dict(participant_id, windowed_dict)
     
     if save_file_name is not None:
-        np.savez(save_file_name, concatenated_data=stacked_data, labels=labels_data)
+        np.savez(save_file_name, 
+                 WINDOW_CONCATENATED_DATA=stacked_data, 
+                 WINDOW_ALL_LABELS=labels_data, 
+                 WINDOW_ALL_METADATA=participant_metadata)
 
-    return stacked_data, np.array(labels_data)
+    return stacked_data, np.array(labels_data), np.array(participant_metadata)
 
 if __name__ == "__main__":
 	print("main empty")

@@ -16,10 +16,6 @@ _logger = logging.getLogger(__name__)
 
 # ---- Python API ----
 
-WINDOW_CONCATENATED_DATA = "arr_0"
-WINDOW_ALL_LABELS = "arr_1"
-WINDOW_ALL_METADATA = "arr_2"
-
 class ML_Model(Enum):
     ESANN = 'ESANN'
     CAPTURE24 = 'CAPTURE24'
@@ -88,6 +84,13 @@ def parse_args(args):
     parser = argparse.ArgumentParser(description="Machine Learning Model Trainer")
    
     parser.add_argument(
+        "-dataset-folder",
+        "--dataset-folder",
+        dest="dataset_folder",
+        required=True,
+        help="Choose the dataset root folder."
+    )   
+    parser.add_argument(
         "-ml-models",
         "--ml-models",
         type=parse_ml_model,
@@ -97,14 +100,6 @@ def parse_args(args):
         help=f"Available ML models: {[c.value for c in ML_Model]}."
     )
     parser.add_argument(
-        "-participant",
-        "--participant",
-        dest="participant",
-        required=True,
-        type=str,
-        help="Participant for which we aggregate the window .npz files."
-    ) 
-    parser.add_argument(
         "-ml-sensors",
         "--ml-sensors",
         type=parse_ml_sensor,
@@ -112,21 +107,14 @@ def parse_args(args):
         dest="ml_sensors",        
         required=True,
         help=f"Available ML sensors: {[c.value for c in ML_Sensor]}."
-    )
+    )    
     parser.add_argument(
-        "-dataset-folder",
-        "--dataset-folder",
-        dest="dataset_folder",
+        "-output-folder",
+        "--output-folder",
+        dest="output_folder",
         required=True,
-        help="Choose the dataset root folder."
-    )
-    parser.add_argument(
-        "-case-id-folder",
-        "--case-id-folder",
-        dest="case_id_folder",
-        required=True,
-        help="Choose the case id root folder."
-    )      
+        help="Select output folder."
+    )       
     parser.add_argument(
         "-v",
         "--verbose",
@@ -189,18 +177,18 @@ def combine_participant_dataset(dataset_folder, participant, models, sensors):
             participant_sensor_file = os.path.join(participant_folder, participant_file)
             participant_sensor_dataset = np.load(participant_sensor_file)
             
-            participant_dataset.append(participant_sensor_dataset[WINDOW_CONCATENATED_DATA])
-            participant_label_dataset.append(participant_sensor_dataset[WINDOW_ALL_LABELS])
-            participant_metadata_dataset.append(participant_sensor_dataset[WINDOW_ALL_METADATA])
+            participant_dataset.append(participant_sensor_dataset["WINDOW_CONCATENATED_DATA"])
+            participant_label_dataset.append(participant_sensor_dataset["WINDOW_ALL_LABELS"])
+            participant_metadata_dataset.append(participant_sensor_dataset["WINDOW_ALL_METADATA"])
             
          # aggregate feature datasets: wrist and thigh
         if "features" in participant_file and "mets" not in participant_file and feature_model_selected(models) and "tot" in participant_file:
             participant_sensor_feature_file = os.path.join(participant_folder, participant_file)
             participant_sensor_feature_dataset = np.load(participant_sensor_feature_file)
             
-            participant_feature_dataset.append(participant_sensor_feature_dataset[WINDOW_CONCATENATED_DATA])
-            participant_feature_label_dataset.append(participant_sensor_feature_dataset[WINDOW_ALL_LABELS])
-            participant_feature_metadata_dataset.append(participant_sensor_feature_dataset[WINDOW_ALL_METADATA])
+            participant_feature_dataset.append(participant_sensor_feature_dataset["WINDOW_CONCATENATED_DATA"])
+            participant_feature_label_dataset.append(participant_sensor_feature_dataset["WINDOW_ALL_LABELS"])
+            participant_feature_metadata_dataset.append(participant_sensor_feature_dataset["WINDOW_ALL_METADATA"])
 
     if len(participant_dataset) > 0:
         participant_dataset = np.concatenate(participant_dataset, axis=1)
@@ -219,8 +207,7 @@ def combine_participant_dataset(dataset_folder, participant, models, sensors):
                 
         participant_sensor_feature_all_file = os.path.join(participant_folder, 'data_' + participant + "_features_all.npz")
         np.savez(participant_sensor_feature_all_file, participant_feature_dataset, participant_feature_label_dataset, participant_feature_metadata_dataset) 
-                
-                             
+                                            
 def main(args):
     args = parse_args(args)
     setup_logging(args.loglevel)
@@ -229,7 +216,7 @@ def main(args):
 
     # Participant datasets agregation
     if len(args.ml_sensors[0]) > 0:
-        combine_participant_dataset(args.dataset_folder, args.participant, args.ml_models[0], args.ml_sensors[0])
+        combine_participant_dataset(args.dataset_folder, args.ml_models[0], args.ml_sensors[0], args.output_folder)
 
     _logger.info("Agregator end here")
 
