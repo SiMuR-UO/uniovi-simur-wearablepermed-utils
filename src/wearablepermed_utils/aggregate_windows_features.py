@@ -151,11 +151,10 @@ def feature_model_selected(models):
         
     return False
 
-def combine_participant_dataset(dataset_folder, participant, models, sensors):
-    participant_folder = os.path.join(dataset_folder, participant)
+def combine_participant_dataset(dataset_folder, models, sensors, output_folder):
     participant_files = [
-        f for f in os.listdir(participant_folder) 
-        if os.path.isfile(os.path.join(participant_folder, f)) and
+        f for f in os.listdir(dataset_folder) 
+        if os.path.isfile(os.path.join(dataset_folder, f)) and
         ".npz" in f and
         any(sensor in f for sensor in ['_' + item for item in [sensor.name for sensor in sensors]])
     ]

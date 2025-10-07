@@ -416,22 +416,20 @@ def load_stacked_data_and_labels(file_path):
 
 ################ Segmentation and Stacking Functions ################
 
-def concatenate_arrays_by_key(dicts, crop_columns):
+def concatenate_arrays_by_key(dict, crop_columns):
     """
     Concatena los arrays de cada clave presente en todos los diccionarios en la segunda dimensión (axis=1).
     Recorta los arrays al mínimo número de muestras (primer dimensión) si son de distinto tamaño.
     Devuelve un nuevo diccionario con las claves y los arrays concatenados.
     """
     concatenated_dict = {}
+
     # Encuentra las claves comunes en todos los diccionarios
-    #common_keys = set.intersection(*(set(d.keys()) for d in dicts))
-    common_keys = set(dicts.keys())
+    common_keys = set(dict.keys())
     for key in common_keys:
-        crop_array = dicts[key][:, crop_columns]
-        #min_len = min(arr.shape[0] for arr in arrays)
-        #arrays_cropped = [arr[:min_len] for arr in arrays]
-        #concatenated_dict[key] = np.concatenate(arrays, axis=1)
+        crop_array = dict[key][:, crop_columns]
         concatenated_dict[key] = crop_array
+
     return concatenated_dict
 
 def create_stack_from_windowed_dict(participant_id, windowed_data_dict):
