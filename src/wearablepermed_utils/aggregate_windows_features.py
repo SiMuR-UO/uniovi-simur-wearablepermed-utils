@@ -193,22 +193,30 @@ def combine_participant_dataset(dataset_folder, models, sensors, output_folder):
                 participant_feature_metadata_dataset.append(participant_sensor_feature_dataset["WINDOW_ALL_METADATA"])
 
     if len(participant_dataset) > 0:
-        participant_dataset = np.concatenate(participant_dataset, axis=0)
+        participant_dataset = np.concatenate(participant_dataset, axis=1)
         participant_label_dataset = participant_label_dataset[:participant_dataset.shape[0]][0]
         participant_metadata_dataset = participant_metadata_dataset[:participant_dataset.shape[0]][0]
 
         participant_sensor_all_file = os.path.join(dataset_folder, participant_id + '_all.npz')
 
-        np.savez(participant_sensor_all_file, participant_dataset, participant_label_dataset, participant_metadata_dataset)
+        np.savez(
+            participant_sensor_all_file,
+            WINDOW_CONCATENATED_DATA=participant_dataset,
+            WINDOW_ALL_LABELS=participant_label_dataset,
+            WINDOW_ALL_METADATA=participant_metadata_dataset)
     
     if len(participant_feature_dataset) > 0:
-        participant_feature_dataset = np.concatenate(participant_feature_dataset, axis=0)
+        participant_feature_dataset = np.concatenate(participant_feature_dataset, axis=1)
         participant_feature_label_dataset = participant_feature_label_dataset[:participant_feature_dataset.shape[0]][0]
         participant_feature_metadata_dataset = participant_feature_metadata_dataset[:participant_feature_dataset.shape[0]][0]
                 
         participant_sensor_feature_all_file = os.path.join(dataset_folder, participant_id + "_all_features.npz")
 
-        np.savez(participant_sensor_feature_all_file, participant_feature_dataset, participant_feature_label_dataset, participant_feature_metadata_dataset) 
+        np.savez(
+            participant_sensor_feature_all_file, 
+            WINDOW_CONCATENATED_DATA=participant_feature_dataset,
+            WINDOW_ALL_LABELS=participant_feature_label_dataset,
+            WINDOW_ALL_METADATA=participant_feature_metadata_dataset) 
                                             
 def main(args):
     args = parse_args(args)

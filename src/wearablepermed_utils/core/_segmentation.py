@@ -15,7 +15,27 @@ from pathlib import Path
 
 from . import load_scale_WPM_data
 
+_DEF_WINDOWS_BALANCED_MEAN = 23 # for all tasks (training + test)
+_DEF_WINDOWS_BALANCED_THRESHOLD = 8  # for all windows (training + test)
+
 ######## Segmentations Functions ########
+
+def balanced(data, labels, metadata):
+    # compare the depth shape with balanced value    
+    if (data.shape[0] - _DEF_WINDOWS_BALANCED_MEAN) < (_DEF_WINDOWS_BALANCED_THRESHOLD - _DEF_WINDOWS_BALANCED_MEAN):
+        # remove data
+        return None, None, None
+    elif (data.shape[0] - _DEF_WINDOWS_BALANCED_MEAN) > (_DEF_WINDOWS_BALANCED_THRESHOLD - _DEF_WINDOWS_BALANCED_MEAN):
+        # Balance data
+        random_indexes = [np.random.randint(0, data.shape[0]) for _ in range(_DEF_WINDOWS_BALANCED_MEAN)]
+
+        data_balanced = data[random_indexes]
+        labels_balanced = [labels[index] for index in random_indexes]
+        metadata_balanced = [metadata[index] for index in random_indexes]
+
+        return data_balanced, labels_balanced,metadata_balanced
+    else:
+        return data, labels, metadata
 
 def find_closest_timestamp(arr, target_timestamp):
     """Find the index of the value in `arr` closest to `target_timestamp` using binary search.
@@ -434,23 +454,40 @@ def concatenate_arrays_by_key(dict, crop_columns):
 
 def create_stack_from_windowed_dict(participant_id, windowed_data_dict):
     stacked_data = []
-    all_labels = []
-    all_metadata = []
+    stacked_labels = []
+    stacked_metadata = []
 
+    activity_previous = list(windowed_data_dict.keys())[0]
+    index = 0
     for activity, data in windowed_data_dict.items():
-        # Selecciona las columnas deseadas (por ejemplo, 1:7)
-        selected_data = data
-        stacked_data.append(selected_data)
-        all_labels.extend([activity] * selected_data.shape[0])
-        all_metadata.extend([participant_id] * selected_data.shape[0])
+        # Selecciona las columnas deseadas (por ejemplo, 1:7) and balanced
+        sub_all_labels = []
+        sub_all_labels.extend([activity] * data.shape[0])
+
+        sub_all_metadata = []
+        sub_all_metadata.extend([participant_id] * data.shape[0])
+
+        if activity != activity_previous or index == len(list(windowed_data_dict.keys())) or index == 0:
+            all_data_balanced, all_labels_balanced, all_metadata_balanced = balanced(data, sub_all_labels, sub_all_metadata)
+
+            # append sub labels windows
+            if all_data_balanced is not None:                
+                stacked_data.append(all_data_balanced)
+                stacked_labels.append(all_labels_balanced)
+                stacked_metadata.append(all_metadata_balanced)
+
+        index = index + 1
+        activity_previous = activity                
 
     # Apila verticalmente todas las ventanas
     if stacked_data:
-        stacked_data = np.vstack(stacked_data)
+        all_data_stack = np.vstack(stacked_data)
+        all_labels_stack = [s for sublista in stacked_labels for s in sublista]
+        all_metadata_stack = [s for sublista in stacked_metadata for s in sublista]
     else:
         stacked_data = np.array([])
 
-    return stacked_data, all_labels, all_metadata
+    return all_data_stack, all_labels_stack, all_metadata_stack
 
 def concatenate_stacks(stacks_and_labels):
     """
@@ -504,7 +541,7 @@ def load_concat_window_stack(args, participant_id, npz_file_path, crop_columns, 
 
     # Create stack and labels
     stacked_data, labels_data, participant_metadata = create_stack_from_windowed_dict(participant_id, windowed_dict)
-    
+
     if save_file_name is not None:
         np.savez(save_file_name, 
                  WINDOW_CONCATENATED_DATA=stacked_data, 
