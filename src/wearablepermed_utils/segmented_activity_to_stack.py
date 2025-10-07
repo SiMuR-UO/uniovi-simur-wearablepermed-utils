@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 import sys
 import argparse
 import logging
@@ -54,11 +55,10 @@ def parse_args(args):
     )
 
     parser.add_argument(
-        '-npz-files', 
-        '--npz-files',
-        dest="npz_files",
-        help='Paths to NPZ files to process',
-        nargs='+',        
+        '-npz-file', 
+        '--npz-file',
+        dest="npz_file",
+        help='Paths to NPZ file to process',        
     )
     
     parser.add_argument(
@@ -157,6 +157,11 @@ def parse_crop_columns(crop_str):
     except ValueError:
         raise argparse.ArgumentTypeError(f"Invalid crop columns format: {crop_str}")
 
+def extract_metadata_from_csv(csv_matrix_PMP):
+     folder_name_path = Path(csv_matrix_PMP)
+     array_metadata = folder_name_path.stem.split('_')
+     return array_metadata[0], array_metadata[1], array_metadata[3]
+
 def main(args):
     args = parse_args(args)
     setup_logging(args.loglevel)
@@ -164,10 +169,13 @@ def main(args):
     _logger.info("Segmentation starts here")
      
     try:
+        participant_id, measurement_date, segment_body = extract_metadata_from_csv(args.npz_file)
+
         # Execute the main function
-        stacked_data, labels = load_concat_window_stack(
+        stacked_data, labels, metadata = load_concat_window_stack(
             args,
-            npz_file_paths=args.npz_files,
+            participant_id=participant_id,
+            npz_file_path=args.npz_file,
             crop_columns=args.crop_columns,
             window_size_samples=args.window_size,
             window_overlapping_percent=args.window_overlapping_percent,

@@ -9,8 +9,6 @@ import matplotlib.pyplot as plt
 import openpyxl
 from datetime import time, timedelta, date
 
-#__all__ = ['load_WPM_IMU_data', 'segment_data_by_dates']
-
 def read_time_from_excel(file_path, sheet_name, cell_reference):
     """
     Reads a specific cell from an Excel file that contains a time in the format 'hh:mm:ss' 
@@ -220,8 +218,8 @@ def load_MATRIX_data_by_index(csv_file, axes_indices = [1, 2, 3]):
     # Extract relevant IMU data (accelerometer and gyroscope)
     imu_data = df[['acc_x', 'acc_y', 'acc_z', 'gyr_x', 'gyr_y', 'gyr_z']].to_numpy()
 
-    # Apply index adjustments for axes selection
-    #It is necessary to do this before sign correction, the order is RELEVANT
+    # Apply index adjustments for axes selection (reorder the columns).
+    # It is necessary to do this before sign correction, the order is RELEVANT
     adjusted_indices = np.concatenate([np.abs(axes_indices)-1, np.abs(axes_indices)+2])
     imu_data = imu_data[:, adjusted_indices]
  
@@ -243,7 +241,7 @@ def load_WPM_data(csv_file, segment):
     
     Args:
         csv_file (str): Path to the CSV file.
-        segment (str): Segment of the body (e.g., 'Wrist', 'Thigh').
+        segment (str): Segment of the body (e.g., 'M: Wrist', 'C: Thigh', 'PI: Hip').
     
     Returns:
         np.array: Processed IMU data for the specified body segment.
@@ -403,12 +401,18 @@ def load_scale_WPM_data(csv_file_PMP, segment_body, excel_file_path, calibrate_w
     """
     
     # ********************************** DATA READING ***************************************
-    WPM_data_W1 = load_WPM_data(csv_file_PMP, segment_body)                                                   # Read data: accelerometer placed on a body segment
-    dictionary_timing_WPM_PMP = extract_WPM_info_from_excel(excel_file_path)                         # Read timestamps stored in the cells of the activity log
+    # Read data: accelerometer placed on a body segment
+    WPM_data_W1 = load_WPM_data(csv_file_PMP, segment_body)                                  
+
+    # Read timestamps stored in the cells of the activity log
+    dictionary_timing_WPM_PMP = extract_WPM_info_from_excel(excel_file_path)
 
     # ******************************* TIMESTAMP SCALING *************************************
-    K = calculate_accelerometer_drift(WPM_data_W1, excel_file_path, segment_body, calibrate_with_start_WALKING_USUAL_SPEED, start_time_WALKING_USUAL_SPEED) # Calculate scaling factor for MATRIX timestamps
-    WPM_data_PMP_W1_SCALED = apply_scaling_to_matrix_data(WPM_data_W1, K)                                                              # Apply scaling
+    # Calculate scaling factor for MATRIX timestamps
+    K = calculate_accelerometer_drift(WPM_data_W1, excel_file_path, segment_body, calibrate_with_start_WALKING_USUAL_SPEED, start_time_WALKING_USUAL_SPEED)
+
+    # Apply scaling
+    WPM_data_PMP_W1_SCALED = apply_scaling_to_matrix_data(WPM_data_W1, K)                   
     
     return WPM_data_PMP_W1_SCALED, dictionary_timing_WPM_PMP
 
