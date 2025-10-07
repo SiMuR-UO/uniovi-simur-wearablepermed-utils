@@ -58,6 +58,9 @@ $ tox -e docs
 $ tox -e publish -- --repository pypi
 ```
 
+Pipeline
+![Example result]https://github.com/SiMuR-UO/uniovi-simur-wearablepermed-utils/main/images/pretraining_pipeline.png)
+
 <!-- pyscaffold-notes -->
 
 ## Note

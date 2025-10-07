@@ -16,6 +16,8 @@ __license__ = "MIT"
 
 _logger = logging.getLogger(__name__)
 
+# ---- Python API ----
+
 def parse_time(time_str):
     try:
         return datetime.strptime(time_str, "%H:%M:%S").time()
