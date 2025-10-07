@@ -155,11 +155,15 @@ def combine_participant_dataset(dataset_folder, models, sensors, output_folder):
     participant_files = [
         f for f in os.listdir(dataset_folder) 
         if os.path.isfile(os.path.join(dataset_folder, f)) and
-        ".npz" in f and
-        any(sensor in f for sensor in ['_' + item for item in [sensor.name for sensor in sensors]])
+           f.endswith(".npz") and "_tot_" in f and
+           any(sensor in f for sensor in ['_' + item for item in [sensor.name for sensor in sensors]])
     ]
 
+    # get the first file top get the participant ID    
     participant_files = sorted(participant_files)
+
+    if len(participant_files)>0: 
+        participant_id = participant_files[0].split("_tot_")[0]
 
     participant_dataset = []
     participant_label_dataset = []
@@ -169,42 +173,41 @@ def combine_participant_dataset(dataset_folder, models, sensors, output_folder):
     participant_feature_label_dataset = []
     participant_feature_metadata_dataset = []
     
-    # aggregate datasets
     for participant_file in participant_files:
-        # aggregate not feature datasets: wrist and thing 
-        if "features" not in participant_file and convolution_model_selected(models) and "tot" in participant_file:
-            participant_sensor_file = os.path.join(participant_folder, participant_file)
-            participant_sensor_dataset = np.load(participant_sensor_file)
-            
-            participant_dataset.append(participant_sensor_dataset["WINDOW_CONCATENATED_DATA"])
-            participant_label_dataset.append(participant_sensor_dataset["WINDOW_ALL_LABELS"])
-            participant_metadata_dataset.append(participant_sensor_dataset["WINDOW_ALL_METADATA"])
-            
-         # aggregate feature datasets: wrist and thigh
+        # aggregate convolution datasets
+        if "features" not in participant_file and convolution_model_selected(models):
+                participant_sensor_file = os.path.join(dataset_folder, participant_file)
+                participant_sensor_dataset = np.load(participant_sensor_file)
+                
+                participant_dataset.append(participant_sensor_dataset["WINDOW_CONCATENATED_DATA"])
+                participant_label_dataset.append(participant_sensor_dataset["WINDOW_ALL_LABELS"])
+                participant_metadata_dataset.append(participant_sensor_dataset["WINDOW_ALL_METADATA"])        
+
+        # aggregate feature datasets
         if "features" in participant_file and "mets" not in participant_file and feature_model_selected(models) and "tot" in participant_file:
-            participant_sensor_feature_file = os.path.join(participant_folder, participant_file)
-            participant_sensor_feature_dataset = np.load(participant_sensor_feature_file)
-            
-            participant_feature_dataset.append(participant_sensor_feature_dataset["WINDOW_CONCATENATED_DATA"])
-            participant_feature_label_dataset.append(participant_sensor_feature_dataset["WINDOW_ALL_LABELS"])
-            participant_feature_metadata_dataset.append(participant_sensor_feature_dataset["WINDOW_ALL_METADATA"])
+                participant_sensor_feature_file = os.path.join(dataset_folder, participant_file)
+                participant_sensor_feature_dataset = np.load(participant_sensor_feature_file)
+                
+                participant_feature_dataset.append(participant_sensor_feature_dataset["WINDOW_CONCATENATED_DATA"])
+                participant_feature_label_dataset.append(participant_sensor_feature_dataset["WINDOW_ALL_LABELS"])
+                participant_feature_metadata_dataset.append(participant_sensor_feature_dataset["WINDOW_ALL_METADATA"])
 
     if len(participant_dataset) > 0:
-        participant_dataset = np.concatenate(participant_dataset, axis=1)
+        participant_dataset = np.concatenate(participant_dataset, axis=0)
         participant_label_dataset = participant_label_dataset[:participant_dataset.shape[0]][0]
         participant_metadata_dataset = participant_metadata_dataset[:participant_dataset.shape[0]][0]
 
-        participant_sensor_all_file = os.path.join(participant_folder, 'data_' + participant + '_all.npz')
+        participant_sensor_all_file = os.path.join(dataset_folder, participant_id + '_all.npz')
+
         np.savez(participant_sensor_all_file, participant_dataset, participant_label_dataset, participant_metadata_dataset)
     
     if len(participant_feature_dataset) > 0:
-        _logger.info(participant)
-
-        participant_feature_dataset = np.concatenate(participant_feature_dataset, axis=1)
+        participant_feature_dataset = np.concatenate(participant_feature_dataset, axis=0)
         participant_feature_label_dataset = participant_feature_label_dataset[:participant_feature_dataset.shape[0]][0]
         participant_feature_metadata_dataset = participant_feature_metadata_dataset[:participant_feature_dataset.shape[0]][0]
                 
-        participant_sensor_feature_all_file = os.path.join(participant_folder, 'data_' + participant + "_features_all.npz")
+        participant_sensor_feature_all_file = os.path.join(dataset_folder, participant_id + "_all_features.npz")
+
         np.savez(participant_sensor_feature_all_file, participant_feature_dataset, participant_feature_label_dataset, participant_feature_metadata_dataset) 
                                             
 def main(args):
