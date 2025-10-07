@@ -142,13 +142,11 @@ def main(args):
         #     print()
         
         # Save results to NPZ file
-        np.savez(
-            args.output,
-            features,
-            labels,
-            metadata
-        )
-        
+        np.savez(args.output,
+                 WINDOW_CONCATENATED_DATA=features, 
+                 WINDOW_ALL_LABELS=labels, 
+                 WINDOW_ALL_METADATA=metadata)
+                
         if args.loglevel in [logging.INFO, logging.DEBUG]:
             print(f"✓ Results saved to: {args.output}")
             file_size = os.path.getsize(args.output)
