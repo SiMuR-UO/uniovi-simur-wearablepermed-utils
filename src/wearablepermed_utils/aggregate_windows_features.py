@@ -155,7 +155,7 @@ def combine_participant_dataset(dataset_folder, models, sensors, output_folder):
     participant_files = [
         f for f in os.listdir(dataset_folder) 
         if os.path.isfile(os.path.join(dataset_folder, f)) and
-           f.endswith(".npz") and "_tot_" in f and
+           f.endswith(".npz") and "_tot" in f and
            any(sensor in f for sensor in ['_' + item for item in [sensor.name for sensor in sensors]])
     ]
 
@@ -163,7 +163,7 @@ def combine_participant_dataset(dataset_folder, models, sensors, output_folder):
     participant_files = sorted(participant_files)
 
     if len(participant_files)>0: 
-        participant_id = participant_files[0].split("_tot_")[0]
+        participant_id = participant_files[0].split("_tot")[0]
 
     participant_dataset = []
     participant_label_dataset = []
