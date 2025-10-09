@@ -151,19 +151,56 @@ def feature_model_selected(models):
         
     return False
 
+def check_segment_body_availability(sensors, dataset_folder):
+    participant_files = [
+        f for f in os.listdir(dataset_folder) 
+        if os.path.isfile(os.path.join(dataset_folder, f)) and
+           f.endswith(".npz") and "_tot" in f and
+           any(sensor in f for sensor in ['_' + item for item in [sensor.name for sensor in sensors]])
+    ]
+
+    participant_files = np.array([participant_file.split("_tot")[0] for participant_file in participant_files])
+
+        # Get unique values
+    participant_files = np.unique(participant_files)
+
+    segment_bodies=np.empty(3, dtype='U2')
+    for i, sensor in enumerate(sensors):
+        if sensor.value  == 'thigh':
+            segment_bodies[i] = 'PI'
+        elif sensor.value == 'wrist':
+            segment_bodies[i] = 'M'
+        elif sensor.value == 'hip':
+            segment_bodies[i]='C'
+
+    segment_body_available = 0
+    for participant_file in participant_files:
+        segment_body = participant_file.split("_")[2]
+
+        if  segment_body in segment_bodies:
+            segment_body_available = segment_body_available + 1
+    
+    if segment_body_available < len(sensors):
+        return False
+    
+    return True
+
 def combine_participant_dataset(dataset_folder, models, sensors, output_folder):
     participant_files = [
         f for f in os.listdir(dataset_folder) 
         if os.path.isfile(os.path.join(dataset_folder, f)) and
-           f.endswith(".npz") and "_tot_" in f and
+           f.endswith(".npz") and "_tot" in f and
            any(sensor in f for sensor in ['_' + item for item in [sensor.name for sensor in sensors]])
     ]
 
+    participant_files = sorted(participant_files)
+    
     # get the first file top get the participant ID    
     participant_files = sorted(participant_files)
 
     if len(participant_files)>0: 
-        participant_id = participant_files[0].split("_tot_")[0]
+        tokens = participant_files[0].split("_")
+        participant_id = tokens[0] + "_" + tokens[1]
 
     participant_dataset = []
     participant_label_dataset = []
@@ -226,6 +263,10 @@ def main(args):
 
     # Participant datasets agregation
     if len(args.ml_sensors[0]) > 0:
+        # check if all segment bodies indicated by user are available in the datasets
+        if (check_segment_body_availability(args.ml_sensors[0], args.dataset_folder) == False):
+            return
+
         combine_participant_dataset(args.dataset_folder, args.ml_models[0], args.ml_sensors[0], args.output_folder)
 
     _logger.info("Agregator end here")
