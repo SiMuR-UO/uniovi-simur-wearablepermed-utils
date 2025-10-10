@@ -79,6 +79,9 @@ def combine_datasets(dataset_folder, output_folder, case_id):
     dataset_feature_metadata = []
 
     for dataset_folder_path, participant_ids, filenames in walk(dataset_folder):
+        participant_ids.sort()
+        filenames.sort()
+    
         # Only process one level of subfolders
         if dataset_folder_path == dataset_folder:
             # Execute the pipeline for each participant
