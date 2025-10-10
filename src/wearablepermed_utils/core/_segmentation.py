@@ -1,5 +1,4 @@
 import time
-import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import openpyxl # Librería para leer datos desde una Hoja Excel
@@ -7,9 +6,6 @@ from datetime import time, timedelta, date, datetime
 import matplotlib.pyplot as plt
 import os
 from scipy.signal import resample
-
-import openpyxl
-from datetime import time, timedelta, date
 
 from pathlib import Path
 
