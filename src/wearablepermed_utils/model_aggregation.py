@@ -119,7 +119,7 @@ def combine_datasets(dataset_folder, output_folder, case_id):
             case_id_folder.mkdir(parents=True, exist_ok=True)
 
             if len(dataset) > 0:
-                dataset = np.concatenate(dataset, axis=1)
+                dataset = np.concatenate(dataset, axis=0)
                 dataset_label = np.concatenate(dataset_label, axis=0)
                 dataset_metadata = np.concatenate(dataset_metadata, axis=0)
             
@@ -128,7 +128,7 @@ def combine_datasets(dataset_folder, output_folder, case_id):
                 np.savez(dataset_all_file, dataset, dataset_label, dataset_metadata)
             
             if len(dataset_feature) > 0:
-                dataset_feature = np.concatenate(dataset_feature, axis=1)
+                dataset_feature = np.concatenate(dataset_feature, axis=0)
                 dataset_feature_label = np.concatenate(dataset_feature_label, axis=0)
                 dataset_feature_metadata = np.concatenate(dataset_feature_metadata, axis=0)
                         
