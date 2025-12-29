@@ -106,6 +106,9 @@ def combine_datasets(dataset_folder, output_folder, case_id):
                         dataset_label.append(participant_sensor_dataset["WINDOW_ALL_LABELS"])
                         dataset_metadata.append(participant_sensor_dataset["WINDOW_ALL_METADATA"])
                         
+                        # shape track logger
+                        _logger.info(str(participant_sensor_dataset["WINDOW_CONCATENATED_DATA"].shape) + "for " + participant_id)
+
                     # aggregate feature datasets: wrist and thing
                     if "features" in participant_file:
                         participant_sensor_feature_file = os.path.join(participant_folder, participant_file)
