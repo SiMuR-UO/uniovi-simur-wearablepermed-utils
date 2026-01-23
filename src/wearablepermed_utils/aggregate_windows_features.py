@@ -152,6 +152,7 @@ def feature_model_selected(models):
     return False
 
 def check_segment_body_availability(sensors, dataset_folder):
+    clean_partial_participant_aggregated_dataset(dataset_folder)
     participant_files = [
         f for f in os.listdir(dataset_folder) 
         if os.path.isfile(os.path.join(dataset_folder, f)) and
@@ -185,15 +186,25 @@ def check_segment_body_availability(sensors, dataset_folder):
     
     return True
 
+def clean_partial_participant_aggregated_dataset(dataset_folder):
+    participant_files = [
+        f for f in os.listdir(dataset_folder) 
+        if os.path.isfile(os.path.join(dataset_folder, f)) and
+           f.endswith(".npz") and "_all" in f]
+    
+    participant_files = sorted(participant_files)
+    
+    for file in participant_files:
+        os.remove(os.path.join(dataset_folder, file))
+    
 def combine_participant_dataset(dataset_folder, models, sensors, output_folder):
+       
     participant_files = [
         f for f in os.listdir(dataset_folder) 
         if os.path.isfile(os.path.join(dataset_folder, f)) and
            f.endswith(".npz") and "_tot" in f and
            any(sensor in f for sensor in ['_' + item for item in [sensor.name for sensor in sensors]])
     ]
-
-    participant_files = sorted(participant_files)
     
     # get the first file top get the participant ID    
     participant_files = sorted(participant_files)
