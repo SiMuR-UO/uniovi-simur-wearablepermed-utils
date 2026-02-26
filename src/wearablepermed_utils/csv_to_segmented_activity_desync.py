@@ -72,6 +72,15 @@ def parse_args(args):
     )
     
     parser.add_argument(
+        "-desync-seconds",
+        "--desync-seconds",           
+        dest="desync_seconds",
+        type=int,
+        default=5,
+        help='Total seconds be desynchronize'
+    )
+
+    parser.add_argument(
         "-plot",
         "--plot",
         dest='plot',
@@ -159,7 +168,8 @@ def main(args):
             plot_data=args.plot,
             out_file=args.output,
             sample_init=args.sample_init,
-            start_time=args.start_time
+            start_time=args.start_time,
+            desync_seconds=args.desync_seconds
         )
         
         _logger.warning("Processing completed successfully!")

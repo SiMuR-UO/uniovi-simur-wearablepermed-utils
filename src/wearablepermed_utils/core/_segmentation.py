@@ -149,7 +149,7 @@ def segment_WPM_activity_data(dictionary_hours_wpm, imu_data):
 
     return segmented_data_wpm
 
-def load_segment_wpm_data(csv_file, excel_activity_log, body_segment, plot_data = True, out_file = None, sample_init=None, start_time=None):
+def load_segment_wpm_data(csv_file, excel_activity_log, body_segment, plot_data = True, out_file = None, sample_init=None, start_time=None, desync_seconds=None):
     """
     Loads, scales, segments, and plots WPM data for two datasets.
 
@@ -161,6 +161,7 @@ def load_segment_wpm_data(csv_file, excel_activity_log, body_segment, plot_data 
         out_file (str, optional): Name of thload_scale_WPM_datae output file to save the segmented data. Do not include extension, it will be saved as a compressed .npz file.
         sample_init_CAMINAR_USUAL_SPEED_PMP1020_PI (int, optional): Sample index for "CAMINAR - USUAL SPEED". If not included, it assumed that the stopping time for the accelerometer is registered in the Excel file.
         """
+    # scale signal
     scaled_data, dictionary_timing = load_scale_WPM_data(
         csv_file,
         body_segment,
@@ -169,8 +170,19 @@ def load_segment_wpm_data(csv_file, excel_activity_log, body_segment, plot_data 
         start_time
     )
 
+    # desynchronize signal
+    if (desync_seconds is not None):
+        print("Desyncrohice signal")
+        # Convert seconds → milliseconds
+        delta_ms = desync_seconds * 1000
+
+        # Add to first column (column index 0)
+        scaled_data[:, 0] += delta_ms
+
+    # segment scaled signal
     segmented_activity_data = segment_WPM_activity_data(dictionary_timing, scaled_data)
 
+    # plot and save results
     if(plot_data):
         plot_segmented_WPM_data(out_file, segmented_activity_data)
     
