@@ -29,11 +29,12 @@ def parse_args(args):
         epilog="""
         Examples:
         # Basic usage:
-        csv_to_segmented_activity \ 
+        csv_to_segmented_activity_desync \ 
             --csv-file /mnt/nvme1n2/git/uniovi-simur-wearablepermed-data/input/PMP1053/PMP1053_W1_M.csv \
             --excel-activity-log /mnt/nvme1n2/git/uniovi-simur-wearablepermed-data/input/PMP1053/PMP1053_RegistroActividades.xlsx \
             --body-segment PI /mnt/nvme1n2/git/uniovi-simur-wearablepermed-data/input/PMP1053/PMP1053_RegistroActividades.xlsx \
-            --output /mnt/nvme1n2/git/uniovi-simur-wearablepermed-data/input/PMP1053/PMP1053_W1_SEG_M.npz
+            --output /mnt/nvme1n2/git/uniovi-simur-wearablepermed-data/input/PMP1053/PMP1053_W1_SEG_M.npz \
+            --desync-seconds 5
         """        
     )   
 
