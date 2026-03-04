@@ -309,9 +309,7 @@ def combine_participant_dataset(dataset_folder, models, sensors, output_folder):
                 participant_feature_metadata_dataset.append(participant_sensor_feature_dataset["WINDOW_ALL_METADATA"])
 
     if len(participant_dataset) > 0:
-        # participant_dataset, 
-        # participant_label_dataset, 
-        # participant_metadata_dataset = align_and_concat_generic(
+        # participant_dataset, participant_label_dataset, participant_metadata_dataset = align_and_concat_generic(
         #     participant_dataset, 
         #     participant_label_dataset, 
         #     participant_metadata_dataset)
@@ -329,9 +327,7 @@ def combine_participant_dataset(dataset_folder, models, sensors, output_folder):
             WINDOW_ALL_METADATA=participant_metadata_dataset)
     
     if len(participant_feature_dataset) > 0:
-        # participant_feature_dataset, 
-        # participant_feature_label_dataset, 
-        # participant_feature_metadata_dataset = align_and_concat_generic(
+        # participant_feature_dataset, participant_feature_label_dataset, participant_feature_metadata_dataset = align_and_concat_generic(
         #     participant_feature_dataset, 
         #     participant_feature_label_dataset, 
         #     participant_feature_metadata_dataset)
