@@ -196,6 +196,74 @@ def clean_partial_participant_aggregated_dataset(dataset_folder):
     
     for file in participant_files:
         os.remove(os.path.join(dataset_folder, file))
+
+def align_and_concat_generic(X_list, y_list, m_list):
+    """
+    X_list: list of numpy arrays [(N_i, F_i), ...]
+    y_list: list of numpy arrays [(N_i,), ...]
+    m_list: list of numpy arrays [(N_i,), ...]
+    """
+
+    n_stacks = len(X_list)
+
+    if not (1 <= n_stacks <= 3):
+        raise ValueError("You must pass between 1 and 3 stacks.")
+
+    # 1️⃣ Safety checks
+    for i in range(1, n_stacks):
+        if not np.array_equal(m_list[0], m_list[i]):
+            raise ValueError("All m arrays must be identical.")
+
+        if set(np.unique(y_list[0])) != set(np.unique(y_list[i])):
+            raise ValueError("All stacks must contain the same class set.")
+
+    # If only one stack → return directly
+    if n_stacks == 1:
+        return X_list[0], y_list[0], m_list[0]
+
+    classes = sorted(np.unique(y_list[0]))
+
+    X_blocks = []
+    y_blocks = []
+    m_blocks = []
+
+    # 2️⃣ Align per class
+    for cls in classes:
+
+        # Collect indices for each stack
+        indices_per_stack = [
+            np.where(y_list[i] == cls)[0]
+            for i in range(n_stacks)
+        ]
+
+        # Determine minimum count across stacks
+        min_len = min(len(idx) for idx in indices_per_stack)
+
+        if min_len == 0:
+            continue
+
+        # Trim indices
+        trimmed_indices = [
+            idx[:min_len]
+            for idx in indices_per_stack
+        ]
+
+        # 3️⃣ Horizontal concatenation across stacks
+        X_concat = np.hstack([
+            X_list[i][trimmed_indices[i]]
+            for i in range(n_stacks)
+        ])
+
+        X_blocks.append(X_concat)
+        y_blocks.append(y_list[0][trimmed_indices[0]])
+        m_blocks.append(m_list[0][trimmed_indices[0]])
+
+    # 4️⃣ Final vertical stacking
+    X_Final = np.vstack(X_blocks)
+    y_Final = np.concatenate(y_blocks)
+    m_Final = np.concatenate(m_blocks)
+
+    return X_Final, y_Final, m_Final
     
 def combine_participant_dataset(dataset_folder, models, sensors, output_folder):
        
@@ -241,6 +309,13 @@ def combine_participant_dataset(dataset_folder, models, sensors, output_folder):
                 participant_feature_metadata_dataset.append(participant_sensor_feature_dataset["WINDOW_ALL_METADATA"])
 
     if len(participant_dataset) > 0:
+        # participant_dataset, 
+        # participant_label_dataset, 
+        # participant_metadata_dataset = align_and_concat_generic(
+        #     participant_dataset, 
+        #     participant_label_dataset, 
+        #     participant_metadata_dataset)
+
         participant_dataset = np.concatenate(participant_dataset, axis=1)
         participant_label_dataset = participant_label_dataset[:participant_dataset.shape[0]][0]
         participant_metadata_dataset = participant_metadata_dataset[:participant_dataset.shape[0]][0]
@@ -254,6 +329,13 @@ def combine_participant_dataset(dataset_folder, models, sensors, output_folder):
             WINDOW_ALL_METADATA=participant_metadata_dataset)
     
     if len(participant_feature_dataset) > 0:
+        # participant_feature_dataset, 
+        # participant_feature_label_dataset, 
+        # participant_feature_metadata_dataset = align_and_concat_generic(
+        #     participant_feature_dataset, 
+        #     participant_feature_label_dataset, 
+        #     participant_feature_metadata_dataset)
+
         participant_feature_dataset = np.concatenate(participant_feature_dataset, axis=1)
         participant_feature_label_dataset = participant_feature_label_dataset[:participant_feature_dataset.shape[0]][0]
         participant_feature_metadata_dataset = participant_feature_metadata_dataset[:participant_feature_dataset.shape[0]][0]

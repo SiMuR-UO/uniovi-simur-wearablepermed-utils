@@ -537,6 +537,10 @@ def load_concat_window_stack(args, participant_id, npz_file_path, crop_columns, 
     # Load dictionaries from each npz file
     segmented_activity_data = load_dicts_from_npz(npz_file_path)
 
+    # remove Yoga and Tapiz Rodante porque estropean las métrica de los modelos
+    segmented_activity_data.pop('YOGA')
+    segmented_activity_data.pop('TAPIZ RODANTE')
+    
     # remove the not estructure data
     if (args.include_not_estructure_data == False):
         segmented_activity_data.pop('ACTIVIDAD NO ESTRUCTURADA')
