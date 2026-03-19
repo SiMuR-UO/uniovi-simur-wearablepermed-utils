@@ -335,6 +335,53 @@ def apply_windowing_WPM_segmented_data(data_dict, window_size_samples, window_ov
 
     return windowed_dict
 
+def apply_windowing_WPM_segmented_data_predictor(data_array, window_size_samples, window_overlapping_percent):
+    """
+    Applies windowing to a arrays based on the number of samples.
+
+    Parameters:
+    -----------
+    data_array : array
+        Array containing the data to be windowed.
+    window_size_samples : int
+        Size of the window in number of samples.
+    window_overlapping_percent : int, optional
+        Step size for windowing (default is no overlap).
+
+    Returns:
+    --------
+    windowed_array_reordered
+        windowed arrays.
+    """
+    
+    # Set step size to window size if not provided
+    if window_overlapping_percent is None:
+        step_size_samples = window_size_samples
+    else:
+        step_size_samples = int((window_overlapping_percent/100) * window_size_samples)
+    
+    # for key, array in data_dict.items():
+    if data_array.ndim == 2:
+        # Windowing for 2D arrays
+        if data_array.shape[0] <= window_size_samples:
+            print(f"Not enough data for windowng.")
+
+        num_windows = (data_array.shape[0] - window_size_samples) // step_size_samples + 1
+        if num_windows <= 0:
+            print(f"Warning: The array is too short for windowing.")
+        
+        # Generate windows
+        windowed_array = np.lib.stride_tricks.sliding_window_view(data_array, window_shape=(window_size_samples, data_array.shape[1]))
+        windowed_array = windowed_array[:num_windows * step_size_samples:step_size_samples]
+        windowed_array = np.squeeze(windowed_array)
+        windowed_array_reordered = windowed_array.transpose(0, 2, 1)
+        print(f"Windowing applied: {windowed_array_reordered.shape} windows (2D)")
+
+    else:
+        print(f"Warning: The array has unsupported dimensions: {data_array.ndim}D")
+
+    return windowed_array_reordered
+
 def create_labeled_stack_wpm(list_of_windowed_dicts):
     """
     Creates a labeled stack from a list of dictionaries containing windowed data.
