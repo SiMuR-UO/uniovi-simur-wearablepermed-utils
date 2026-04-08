@@ -507,7 +507,7 @@ def concatenate_arrays_by_key(dict, crop_columns):
 
     return concatenated_dict
 
-def create_stack_from_windowed_dict(participant_id, windowed_data_dict):
+def create_stack_from_windowed_dict(args, participant_id, windowed_data_dict):
     stacked_data = []
     stacked_labels = []
     stacked_metadata = []
@@ -523,7 +523,12 @@ def create_stack_from_windowed_dict(participant_id, windowed_data_dict):
         sub_all_metadata.extend([participant_id] * data.shape[0])
 
         if activity != activity_previous or index == len(list(windowed_data_dict.keys())) or index == 0:
-            all_data_balanced, all_labels_balanced, all_metadata_balanced = balanced(data, sub_all_labels, sub_all_metadata)
+            if args.include_not_estructure_data == True:
+                all_data_balanced = data
+                all_labels_balanced = sub_all_labels
+                all_metadata_balanced = sub_all_metadata
+            else:
+                all_data_balanced, all_labels_balanced, all_metadata_balanced = balanced(data, sub_all_labels, sub_all_metadata)
 
             # append sub labels windows
             if all_data_balanced is not None:                
@@ -599,7 +604,7 @@ def load_concat_window_stack(args, participant_id, npz_file_path, crop_columns, 
     windowed_dict = apply_windowing_WPM_segmented_data(concatenated_dict, window_size_samples, window_overlapping_percent)
 
     # Create stack and labels
-    stacked_data, labels_data, participant_metadata = create_stack_from_windowed_dict(participant_id, windowed_dict)
+    stacked_data, labels_data, participant_metadata = create_stack_from_windowed_dict(args, participant_id, windowed_dict)
 
     if save_file_name is not None:
         np.savez(save_file_name, 
