@@ -143,6 +143,9 @@ def segment_WPM_activity_data(dictionary_hours_wpm, imu_data):
             dictionary_hours_wpm[start_date_key] is not None and 
             dictionary_hours_wpm[end_date_key] is not None):
                 start_time = datetime.combine(dictionary_hours_wpm[start_date_key], dictionary_hours_wpm[start_key])
+                # Eliminate the initial 3 minutes of the activity 'INCREMENTAL CICLOERGOMETRO'
+                if activity_name == 'INCREMENTAL CICLOERGOMETRO':
+                    start_time = start_time + timedelta(minutes=3)
                 end_time = datetime.combine(dictionary_hours_wpm[end_date_key], dictionary_hours_wpm[end_key])        
                 data = segment_MATRIX_data_by_dates(imu_data, start_time, end_time)        
                 segmented_data_wpm[activity_name] = data
