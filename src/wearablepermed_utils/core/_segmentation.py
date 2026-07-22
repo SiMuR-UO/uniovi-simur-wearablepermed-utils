@@ -569,34 +569,41 @@ def concatenate_stacks(stacks_and_labels):
     return concatenated_stack, concatenated_labels
 
 
-def downsample_moving_window(signal, fs_original, fs_new, window_width=3):
+def downsample_window_stack(window_stack, fs_new, fs_original=25, window_duration_seconds=10):
     """
-    Downsamples a 1D time-series signal using a sliding moving average window
-    based purely on NumPy array indexing.
+    Downsamples a 3D IMU window stack array (shape: windows, channels, samples) using a sliding
+    moving average window. Scaled so each target window matches a 10-second span at the target rate.
     """
+    num_windows, num_channels, original_samples = window_stack.shape           # Extract dimension variables from shape (windows, channels, samples)
+    
     step_factor = fs_original / fs_new                                          # Step stride per output sample (e.g., 25/10 = 2.5)
-    radius = window_width / 2                                                   # Half-width of the window boundary
+    target_window_samples = window_duration_seconds * fs_new                    # Samples required per window in the target domain (100)
+    window_width = target_window_samples * step_factor                          # Equivalent window width mapped to original samples (250)
+    radius = window_width / 2                                                   # Half-width of the scaled temporal window boundary
     
-    num_new_samples = int(np.floor(len(signal) * (fs_new / fs_original)))       # Exact total number of target samples
-    downsampled_signal = np.zeros(num_new_samples)                              # Initialize output array memory
+    num_new_samples = int(np.floor(original_samples * (fs_new / fs_original)))  # Exact total number of target samples per individual window
+    downsampled_stack = np.zeros((num_windows, num_channels, num_new_samples))  # Initialize 3D output tensor array space memory
     
-    for i in range(num_new_samples):                                            # Slide window through array indices
-        theoretical_center = i * step_factor                                    # Theoretical float center in original signal
+    for w in range(num_windows):                                                # Loop through each window block in the stack batch
+        active_window = window_stack[w]                                         # Extract 2D matrix for this step (shape: channels, samples)
         
-        left_limit = theoretical_center - radius                                # Left float limit of window
-        right_limit = theoretical_center + radius                               # Right float limit of window
-        
-        start_idx = max(0, int(np.round(left_limit)))                           # Map to safe lower integer index bound
-        end_idx = min(len(signal), int(np.round(right_limit)))                  # Map to safe upper integer index bound
-        
-        if start_idx >= end_idx:                                                # Empty block boundary fallback guard
-            start_idx = min(len(signal) - 1, int(np.round(theoretical_center))) # Snap start index to closest integer center
-            end_idx = start_idx + 1                                             # Slice exactly one single sample wide
+        for i in range(num_new_samples):                                        # Slide window through individual temporal array indices
+            theoretical_center = i * step_factor                                # Theoretical float center in original signal domain
             
-        segment_block = signal[start_idx:end_idx]                               # Extract active window sample slice
-        downsampled_signal[i] = np.mean(segment_block)                          # Apply moving average calculation
-        
-    return downsampled_signal
+            left_limit = theoretical_center - radius                            # Left float limit of scaled window boundary
+            right_limit = theoretical_center + radius                           # Right float limit of scaled window boundary
+            
+            start_idx = max(0, int(np.round(left_limit)))                       # Map to safe lower integer index bound
+            end_idx = min(original_samples, int(np.round(right_limit)))         # Map to safe upper integer index bound using sample limit
+            
+            if start_idx >= end_idx:                                            # Empty block boundary fallback guard condition
+                start_idx = min(original_samples - 1, int(np.round(theoretical_center))) # Snap start index to closest integer center
+                end_idx = start_idx + 1                                         # Slice exactly one single sample width slice
+                
+            segment_block = active_window[:, start_idx:end_idx]                 # CORRECTED: Slice across the temporal axis (axis 1)
+            downsampled_stack[w, :, i] = np.mean(segment_block, axis=1)         # CORRECTED: Target axis allocation and collapse temporal mean
+            
+    return downsampled_stack
 
 
 def load_concat_window_stack(args, participant_id, npz_file_path, crop_columns, window_size_samples, window_overlapping_percent=None, save_file_name=None):
@@ -636,6 +643,15 @@ def load_concat_window_stack(args, participant_id, npz_file_path, crop_columns, 
 
     # Apply windowing
     windowed_dict = apply_windowing_WPM_segmented_data(concatenated_dict, window_size_samples, window_overlapping_percent)
+
+    if args.fs_downsampling is not None:
+        # Downsampling signals, if selected:
+        windowed_dict_downsampled = {}  # Dictionary to store segmented downsampled data
+        
+        for key, array in windowed_dict.items():
+            downsampled_array = downsample_window_stack(array, args.fs_downsampling, fs_original=25, window_duration_seconds=10)
+            windowed_dict_downsampled[key] = downsampled_array
+        windowed_dict = windowed_dict_downsampled
 
     # Create stack and labels
     stacked_data, labels_data, participant_metadata = create_stack_from_windowed_dict(args, participant_id, windowed_dict)

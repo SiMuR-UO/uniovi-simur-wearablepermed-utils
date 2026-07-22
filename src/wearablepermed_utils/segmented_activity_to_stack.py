@@ -6,6 +6,10 @@ import logging
 
 import numpy as np
 
+# **** FOR DEBUG ONLY ****
+# This appends the repository root so absolute imports work during local debugging
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))) # Inject parent folder into search path
+# **** FOR DEBUG ONLY ****
 from wearablepermed_utils.core import load_concat_window_stack
 
 from wearablepermed_utils import __version__
@@ -51,14 +55,14 @@ def parse_args(args):
     parser.add_argument(
         "--version",
         action="version",
-        version=f"uniovi-simur-wearablepermed-utils {__version__}",
+        version=f"uniovi-simur-wearablepermed-utils {__version__}"
     )
 
     parser.add_argument(
         '-npz-file', 
         '--npz-file',
         dest="npz_file",
-        help='Paths to NPZ file to process',        
+        help='Paths to NPZ file to process'        
     )
     
     parser.add_argument(
@@ -77,7 +81,15 @@ def parse_args(args):
         dest="window_size",
         help='Window size in number of samples',        
         type=int,
-        required=True,
+        required=True
+    )
+
+    parser.add_argument(
+        '-fs-downsampling', 
+        '--fs-downsampling',
+        dest="fs_downsampling",
+        help='Frequency to which we want to downsample the imumetry signals.',        
+        type=int
     )
     
     parser.add_argument(
@@ -108,7 +120,7 @@ def parse_args(args):
         dest="loglevel",
         help="set loglevel to INFO",
         action="store_const",
-        const=logging.INFO,
+        const=logging.INFO
     )
 
     parser.add_argument(
@@ -117,7 +129,7 @@ def parse_args(args):
         dest="loglevel",
         help="set loglevel to DEBUG",
         action="store_const",
-        const=logging.DEBUG,
+        const=logging.DEBUG
     )
 
     return parser.parse_args(args)
@@ -202,7 +214,7 @@ def main(args):
     except Exception as e:
         _logger.error("✗ Error during processing: {e}", file=sys.stderr)
 
-        if args.loglevel == logging.DEBUG: 
+        if args.loglevel == logging.DEBUG:
             import traceback
             traceback.print_exc()
 
