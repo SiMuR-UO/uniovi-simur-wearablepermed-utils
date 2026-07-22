@@ -534,7 +534,7 @@ def create_stack_from_windowed_dict(args, participant_id, windowed_data_dict):
                 all_data_balanced, all_labels_balanced, all_metadata_balanced = balanced(data, sub_all_labels, sub_all_metadata)
 
             # append sub labels windows
-            if all_data_balanced is not None:                
+            if all_data_balanced is not None:               
                 stacked_data.append(all_data_balanced)
                 stacked_labels.append(all_labels_balanced)
                 stacked_metadata.append(all_metadata_balanced)
