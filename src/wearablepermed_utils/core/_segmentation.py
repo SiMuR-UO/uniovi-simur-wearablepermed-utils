@@ -568,6 +568,37 @@ def concatenate_stacks(stacks_and_labels):
         concatenated_labels = []
     return concatenated_stack, concatenated_labels
 
+
+def downsample_moving_window(signal, fs_original, fs_new, window_width=3):
+    """
+    Downsamples a 1D time-series signal using a sliding moving average window
+    based purely on NumPy array indexing.
+    """
+    step_factor = fs_original / fs_new                                          # Step stride per output sample (e.g., 25/10 = 2.5)
+    radius = window_width / 2                                                   # Half-width of the window boundary
+    
+    num_new_samples = int(np.floor(len(signal) * (fs_new / fs_original)))       # Exact total number of target samples
+    downsampled_signal = np.zeros(num_new_samples)                              # Initialize output array memory
+    
+    for i in range(num_new_samples):                                            # Slide window through array indices
+        theoretical_center = i * step_factor                                    # Theoretical float center in original signal
+        
+        left_limit = theoretical_center - radius                                # Left float limit of window
+        right_limit = theoretical_center + radius                               # Right float limit of window
+        
+        start_idx = max(0, int(np.round(left_limit)))                           # Map to safe lower integer index bound
+        end_idx = min(len(signal), int(np.round(right_limit)))                  # Map to safe upper integer index bound
+        
+        if start_idx >= end_idx:                                                # Empty block boundary fallback guard
+            start_idx = min(len(signal) - 1, int(np.round(theoretical_center))) # Snap start index to closest integer center
+            end_idx = start_idx + 1                                             # Slice exactly one single sample wide
+            
+        segment_block = signal[start_idx:end_idx]                               # Extract active window sample slice
+        downsampled_signal[i] = np.mean(segment_block)                          # Apply moving average calculation
+        
+    return downsampled_signal
+
+
 def load_concat_window_stack(args, participant_id, npz_file_path, crop_columns, window_size_samples, window_overlapping_percent=None, save_file_name=None):
     """
     Loads multiple .npz files, concatenates arrays by key, applies windowing, creates a stacked array and labels,
