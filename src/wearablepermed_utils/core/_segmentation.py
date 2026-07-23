@@ -600,8 +600,8 @@ def downsample_window_stack(window_stack, fs_new, fs_original=25, window_duratio
                 start_idx = min(original_samples - 1, int(np.round(theoretical_center))) # Snap start index to closest integer center
                 end_idx = start_idx + 1                                         # Slice exactly one single sample width slice
                 
-            segment_block = active_window[:, start_idx:end_idx]                 # CORRECTED: Slice across the temporal axis (axis 1)
-            downsampled_stack[w, :, i] = np.mean(segment_block, axis=1)         # CORRECTED: Target axis allocation and collapse temporal mean
+            segment_block = active_window[:, start_idx:end_idx]                 # Slice across the temporal axis (axis 1)
+            downsampled_stack[w, :, i] = np.mean(segment_block, axis=1)         # Target axis allocation and collapse temporal mean
             
     return downsampled_stack
 

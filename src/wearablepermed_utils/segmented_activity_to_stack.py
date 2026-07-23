@@ -179,7 +179,7 @@ def main(args):
     setup_logging(args.loglevel)
 
     _logger.info("Segmentation starts here")
-     
+    
     try:
         participant_id, measurement_date, segment_body = extract_metadata_from_csv(args.npz_file)
 
