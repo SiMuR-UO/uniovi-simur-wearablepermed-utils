@@ -89,7 +89,7 @@ def parse_args(args):
         '--fs-downsampling',
         dest="fs_downsampling",
         help='Frequency to which we want to downsample the imumetry signals.',        
-        type=int
+        type=float
     )
     
     parser.add_argument(
