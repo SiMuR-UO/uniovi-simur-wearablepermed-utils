@@ -5,7 +5,8 @@ import openpyxl # Librería para leer datos desde una Hoja Excel
 from datetime import time, timedelta, date, datetime
 import matplotlib.pyplot as plt
 import os
-from scipy.signal import resample
+from fractions import Fraction
+from scipy.signal import resample_poly
 
 from pathlib import Path
 
@@ -13,6 +14,7 @@ from . import load_scale_WPM_data
 
 _DEF_WINDOWS_BALANCED_MEAN = 23 # for all tasks (training + test)
 _DEF_WINDOWS_BALANCED_THRESHOLD = 8  # for all windows (training + test)
+_DEF_FS_ORIGINAL = 25                # sampling frequency of the WPM recordings [Hz]
 
 ######## Segmentations Functions ########
 
@@ -569,41 +571,35 @@ def concatenate_stacks(stacks_and_labels):
     return concatenated_stack, concatenated_labels
 
 
-def downsample_window_stack(window_stack, fs_new, fs_original=25, window_duration_seconds=10):
+def resample_signal(signal, fs_new, fs_original=_DEF_FS_ORIGINAL):
     """
-    Downsamples a 3D IMU window stack array (shape: windows, channels, samples) using a sliding
-    moving average window. Scaled so each target window matches a 10-second span at the target rate.
+    Downsamples a continuous 2D IMU signal (shape: samples, channels) with an anti-aliasing
+    polyphase FIR filter. It must be applied before windowing, so that window edges do not
+    introduce filter transients.
+
+    Parameters:
+    -----------
+    signal : np.ndarray
+        Continuous signal with time along axis 0.
+    fs_new : float
+        Target sampling frequency in Hz (must not exceed fs_original).
+    fs_original : float, optional
+        Original sampling frequency in Hz (default 25).
+
+    Returns:
+    --------
+    np.ndarray
+        Resampled signal, shape (ceil(samples * fs_new / fs_original), channels).
     """
-    num_windows, num_channels, original_samples = window_stack.shape           # Extract dimension variables from shape (windows, channels, samples)
-    
-    step_factor = fs_original / fs_new                                          # Step stride per output sample (e.g., 25/10 = 2.5)
-    target_window_samples = window_duration_seconds * fs_new                    # Samples required per window in the target domain (100)
-    window_width = target_window_samples * step_factor                          # Equivalent window width mapped to original samples (250)
-    radius = window_width / 2                                                   # Half-width of the scaled temporal window boundary
-    
-    num_new_samples = int(np.floor(original_samples * (fs_new / fs_original)))  # Exact total number of target samples per individual window
-    downsampled_stack = np.zeros((num_windows, num_channels, num_new_samples))  # Initialize 3D output tensor array space memory
-    
-    for w in range(num_windows):                                                # Loop through each window block in the stack batch
-        active_window = window_stack[w]                                         # Extract 2D matrix for this step (shape: channels, samples)
-        
-        for i in range(num_new_samples):                                        # Slide window through individual temporal array indices
-            theoretical_center = i * step_factor                                # Theoretical float center in original signal domain
-            
-            left_limit = theoretical_center - radius                            # Left float limit of scaled window boundary
-            right_limit = theoretical_center + radius                           # Right float limit of scaled window boundary
-            
-            start_idx = max(0, int(np.round(left_limit)))                       # Map to safe lower integer index bound
-            end_idx = min(original_samples, int(np.round(right_limit)))         # Map to safe upper integer index bound using sample limit
-            
-            if start_idx >= end_idx:                                            # Empty block boundary fallback guard condition
-                start_idx = min(original_samples - 1, int(np.round(theoretical_center))) # Snap start index to closest integer center
-                end_idx = start_idx + 1                                         # Slice exactly one single sample width slice
-                
-            segment_block = active_window[:, start_idx:end_idx]                 # Slice across the temporal axis (axis 1)
-            downsampled_stack[w, :, i] = np.mean(segment_block, axis=1)         # Target axis allocation and collapse temporal mean
-            
-    return downsampled_stack
+    if fs_new <= 0 or fs_new > fs_original:
+        raise ValueError(f"fs_new must be in (0, {fs_original}] Hz, got {fs_new}")
+
+    ratio = Fraction(str(fs_new)) / Fraction(str(fs_original))                  # Exact rational ratio (e.g. 20/25 = 4/5, 0.5/25 = 1/50)
+    if ratio == 1:
+        return signal.copy()
+
+    # padtype='line' avoids edge transients caused by the gravity offset when zero-padding
+    return resample_poly(signal, ratio.numerator, ratio.denominator, axis=0, padtype='line')
 
 
 def load_concat_window_stack(args, participant_id, npz_file_path, crop_columns, window_size_samples, window_overlapping_percent=None, save_file_name=None):
@@ -641,17 +637,16 @@ def load_concat_window_stack(args, participant_id, npz_file_path, crop_columns, 
     # Concatenate arrays by key and crop columns
     concatenated_dict = concatenate_arrays_by_key(segmented_activity_data, crop_columns)
 
+    # Downsample the continuous signals, if selected, before windowing. The window keeps
+    # its duration in seconds, so its size in samples is rescaled to the new frequency.
+    fs = _DEF_FS_ORIGINAL
+    if args.fs_downsampling is not None:
+        fs = args.fs_downsampling
+        concatenated_dict = {key: resample_signal(array, fs, _DEF_FS_ORIGINAL) for key, array in concatenated_dict.items()}
+        window_size_samples = int(round(window_size_samples * fs / _DEF_FS_ORIGINAL))
+
     # Apply windowing
     windowed_dict = apply_windowing_WPM_segmented_data(concatenated_dict, window_size_samples, window_overlapping_percent)
-
-    if args.fs_downsampling is not None:
-        # Downsampling signals, if selected:
-        windowed_dict_downsampled = {}  # Dictionary to store segmented downsampled data
-        
-        for key, array in windowed_dict.items():
-            downsampled_array = downsample_window_stack(array, args.fs_downsampling, fs_original=25, window_duration_seconds=10)
-            windowed_dict_downsampled[key] = downsampled_array
-        windowed_dict = windowed_dict_downsampled
 
     # Create stack and labels
     stacked_data, labels_data, participant_metadata = create_stack_from_windowed_dict(args, participant_id, windowed_dict)
@@ -660,7 +655,8 @@ def load_concat_window_stack(args, participant_id, npz_file_path, crop_columns, 
         np.savez(save_file_name, 
                  WINDOW_CONCATENATED_DATA=stacked_data, 
                  WINDOW_ALL_LABELS=labels_data, 
-                 WINDOW_ALL_METADATA=participant_metadata)
+                 WINDOW_ALL_METADATA=participant_metadata,
+                 WINDOW_FS=fs)
 
     return stacked_data, np.array(labels_data), np.array(participant_metadata)
 

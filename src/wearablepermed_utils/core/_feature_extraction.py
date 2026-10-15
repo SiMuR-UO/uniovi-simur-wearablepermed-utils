@@ -4,6 +4,9 @@ from . import _preprocessing as prep
 from scipy.signal import find_peaks
 from numpy import arctan2, atan2, sqrt
 
+_DEF_FS = 25                    # Frecuencia de muestreo original de los registros WPM [Hz]
+_DEF_AUTOCORRELATION_LAG_S = 1  # Desfase de la autocorrelación [s] (25 muestras a 25 Hz)
+
 def get_basic_stats(epochdata, filter_b = [], filter_a = []):
     """
     Calculate basic statistics for the given epoch data.
@@ -102,7 +105,14 @@ def get_FFT_magnitude(FFT, normalize=True):
         FFTmag /= len(FFT)
     return FFTmag
 
-def extract_features(data):
+def extract_features(data, fs=_DEF_FS):
+    """
+    Extrae el vector de características de cada ventana.
+
+    Parameters:
+    data (numpy.ndarray): Ventanas con forma (num_ventanas, canales, muestras).
+    fs (float, optional): Frecuencia de muestreo de las ventanas en [Hz]. Default: 25.
+    """
     # ***************
     # 1.- Cuantiles *
     # ***************
@@ -135,7 +145,7 @@ def extract_features(data):
             # Extraemos la serie temporal de longitud 250
             serie = data[i, j, :]
             # Calculamos las características espectrales
-            resultado_armonicos,_ = obtener_caracteristicas_espectrales(serie,25)
+            resultado_armonicos,_ = obtener_caracteristicas_espectrales(serie,fs)
             armonicos_totales[j, :] = resultado_armonicos
         armonicos_totales_2 = np.reshape(armonicos_totales,(1,-1))
         matriz_resultados_armonicos[i,:] = armonicos_totales_2
@@ -197,21 +207,25 @@ def extract_features(data):
     # 5.- Autocorrelación del acelerómetro *
     # **************************************
     matriz_resultados_autocorrelacion = np.zeros((num_filas, 1))
+    # Desfase en muestras equivalente a _DEF_AUTOCORRELATION_LAG_S, acotado a [1, muestras - 1]
+    # para que a frecuencias bajas (p. ej. 5 muestras a 0.5 Hz) la serie desplazada no sea nula
+    num_muestras = data.shape[2]
+    lag = int(min(max(round(_DEF_AUTOCORRELATION_LAG_S * fs), 1), num_muestras - 1))
     # matriz_resultados_autocorrelacion = np.zeros((num_filas, 2))
     # Recorremos cada serie temporal y calculamos los picos
     for i in range(num_filas):
         serie = np.linalg.norm(data[i,0:3,:], axis=0)
         # serie_desplazada = np.pad(serie[-25], (25,), mode='constant', constant_values=0)
         serie_desplazada = np.empty_like(serie)
-        serie_desplazada[:25] = 0
-        serie_desplazada[25:] = serie[:-25]
+        serie_desplazada[:lag] = 0
+        serie_desplazada[lag:] = serie[:-lag]
             
         autocorrelacion_acc_IMU1 = np.corrcoef(serie, serie_desplazada)
 
         serie = np.linalg.norm(data[i,6:9,:], axis=0)
         serie_desplazada = np.empty_like(serie)
-        serie_desplazada[:25] = 0
-        serie_desplazada[25:] = serie[:-25]
+        serie_desplazada[:lag] = 0
+        serie_desplazada[lag:] = serie[:-lag]
         # serie_desplazada = np.pad(serie[:,-25], (25,0), mode='constant', constant_values=0)
         autocorrelacion_acc_IMU2 = np.corrcoef(serie, serie_desplazada)
         
@@ -227,7 +241,7 @@ def extract_features(data):
     # **************************************************
     # 6.- Componentes roll, pitch y yaw del movimiento *
     # **************************************************
-    dt = 1/25      # Período de muestreo en [s]
+    dt = 1/fs      # Período de muestreo en [s]
     rolls_promedio = np.zeros((num_filas, 1))
     pitches_promedio = np.zeros((num_filas, 1))
     yaws_promedio = np.zeros((num_filas, 1))
@@ -385,6 +399,8 @@ def extract_features_from_stack(stack_file):
             concatenated_data = data["WINDOW_CONCATENATED_DATA"]  # (num_ventanas, canales, window_size)
             labels = data["WINDOW_ALL_LABELS"]
             metadata = data["WINDOW_ALL_METADATA"]
+            # Los stacks generados antes de guardar la frecuencia de muestreo son de 25 Hz
+            fs = float(data["WINDOW_FS"]) if "WINDOW_FS" in data.files else _DEF_FS
     except FileNotFoundError:
         raise FileNotFoundError(f"No se pudo encontrar el archivo: {stack_file}")
     except KeyError as e:
@@ -401,7 +417,7 @@ def extract_features_from_stack(stack_file):
                         f"con el número de etiquetas ({len(labels)})")
     
     # 2. Extraer features para cada ventana del stack
-    features = extract_features(concatenated_data)
+    features = extract_features(concatenated_data, fs)
     
     # 3. Obtener información adicional
     # unique_labels = np.unique(labels)
